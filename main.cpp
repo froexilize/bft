@@ -2,6 +2,9 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <functional>
+#include <unordered_map>
+#include <map>
 
 std::mt19937_64 gen;
 
@@ -14,6 +17,7 @@ class General {
 		bool betrayer;
 		int army_size;
 		std::vector<int> other;
+		std::vector<int> real;
 		std::vector<std::vector<int> > full;
 
 		int ask_army() {
@@ -34,6 +38,41 @@ class General {
 			return other;
 		}
 
+		void calc() {
+			real.resize(other.size());
+			for(size_t i = 0; i < full.size(); ++i) { // iterate each army...
+				//std::cout << "Check army #" << i + 1 << std::endl;
+				auto q = get_quorum();
+				bool checked = false;
+				std::map<int, int> armies;
+				for(size_t j = 0; j < full.size(); ++j) { // ...and info from each general
+					auto value = full[j][i];
+					auto v = armies.find(value);
+					if(v == armies.end()) {
+						armies.emplace(std::make_pair(value, 1));
+					}
+					else {
+						v->second = ++v->second;
+						if(v->second >= q) {
+							std::cout << "Accept value " << v->first << " because the quorum limit (" << q << ")." << std::endl;
+							real[i] = v->first;
+							checked = true;
+							break;
+						}
+					}
+				}
+				if(!checked) {
+					real[i] = -1;
+					std::cout << "Failed to pass quorum limit (" << q << ")." << std::endl;
+				}
+			}
+		}
+
+		size_t get_quorum() {
+			size_t q = other.size() / 2;
+			return other.size() % 2 ? q : q + 1;
+		}
+
 		void print_other() {
 			std::cout << "( ";
 			for(auto g:other) {
@@ -44,11 +83,7 @@ class General {
 
 		void print_full() {
 			for(size_t i = 0; i < full.size(); ++i) {
-				std::cout << "( ";
-				for(size_t j = 0; j < full[i].size(); ++j) {
-					std::cout << full[i][j] << " ";
-				}
-				std::cout << ") ";
+				print_full(i);
 			}
 		}
 
@@ -58,6 +93,14 @@ class General {
 				std::cout << g << " ";
 			}
 			std::cout << ") ";
+		}
+
+		void print_calc() {
+			std::cout << "( ";
+			for(auto &g:real) {
+				std::cout << g << " ";
+			}
+			std::cout << ")";
 		}
 };
 
@@ -100,6 +143,13 @@ int main() {
 		for(size_t j = 0; j < generals.size(); ++j) {
 			generals[j].print_full(i);
 		}
+		std::cout << std::endl;
+	}
+// Step 4: Determine real values
+	for(size_t i = 0; i < generals.size(); ++ i) {
+		std::cout << "General " << i + 1 <<  " =======================" << std::endl;
+		generals[i].calc();
+		generals[i].print_calc();
 		std::cout << std::endl;
 	}
 
